@@ -41,12 +41,24 @@ SymbolTable ProgramScope;
 Stack SymbolStack;
 IdentifierStack IdStack;
 SpecialIdStack SpIdStack;
+FILE* CodeFile;
 
 int InitCompiler ()
 {
 	InitSymbolTable(&ProgramScope);
 	InitIdStack(&IdStack);
 	initSpIdStack(&SpIdStack);
+	return 1;
+}
+
+int InitCodeGen(const char* file_name)
+{
+	// open the file for writing
+	CodeFile = fopen(file_name, "w");
+	if (CodeFile == NULL) {
+		perror("Unable to open file");
+		return 0;
+	}
 	return 1;
 }
 
@@ -143,7 +155,7 @@ ParserInfo compile (char* dir_name)
 	// open the directory
 	DIR *dir, *predir;
 	char working_dir[1000];
-	char file_name[1280];
+	char file_name[1280], output_file[2560];
 	dir = opendir(dir_name);
 	
 	strcpy(working_dir, dir_name);
@@ -191,10 +203,25 @@ ParserInfo compile (char* dir_name)
 				//printf("File: %s is not a jack file\n", file_name);
 				continue;
 			}
+			else{
+				//defibe the output file name
+				//remove the .jack extension
+				char base_name[640];
+                strncpy(base_name, entry->d_name, sizeof(base_name));
+                base_name[sizeof(base_name) - 1] = '\0';
+                char *dot = strrchr(base_name, '.');
+                if (dot && strcmp(dot, ".jack") == 0) {
+                    *dot = '\0';
+                }
+                snprintf(output_file, sizeof(output_file), "%s/%s.vm", dir_name, base_name);
+			}
 			InitParser(file_name);
+			InitCodeGen(output_file);
+
 			// printf("Current error: %d\n", p.er);
 			p = Parse();
 			StopParser();
+			StopCodeGen();
 			if (p.er != none) {
 				// printf("Error in file: %s\n", file_name);
 				// printf("Error type: %d, line: %i,token: %s\n", p.er, p.tk.ln, p.tk.lx);
@@ -230,6 +257,16 @@ ParserInfo compile (char* dir_name)
 	// 			printf("Name: %s, Type: %d, Kind: %d\n", ProgramScope.table[i]->name, ProgramScope.table[i]->type, ProgramScope.table[i]->kind);
 	// 		}
 	return p;
+}
+
+int StopCodeGen()
+{
+	// close the file
+	if (CodeFile != NULL) {
+		fclose(CodeFile);
+		CodeFile = NULL;
+	}
+	return 1;
 }
 
 int StopCompiler ()

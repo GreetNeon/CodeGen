@@ -13,7 +13,10 @@ extern IdentifierStack IdStack; // Stack for identifiers
 extern SpecialIdStack SpIdStack; // Stack for special identifiers
 
 int InitCompiler ();
+int InitCodeGen(const char* file_name);
 ParserInfo compile (char* dir_name);
+int StopCodeGen();
 int StopCompiler();
+
 
 #endif
